@@ -1,0 +1,17 @@
+name: peptide_design
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.9
+  - jax
+  - jaxlib
+  - numpy
+  - pandas
+  - matplotlib
+  - scipy
+  - biopython
+  - mdtraj
+  - pyyaml
+  - pip:
+    - colabdesign

@@ -1,0 +1,21 @@
+#Eminimization
+ &cntrl
+    imin=1, 
+    ntmin=2, 
+    maxcyc=20000, 
+
+    igb=0,
+    nsnb=20, 
+    cut=9.0, 
+    dielc=1.0, 
+
+    ntpr=1000,
+
+     ! Restraint options
+    ntr=1,         ! Positional restraints for proteins, sugars, ligands, and lipid head groups
+    restraint_wt=2.5, ! (force constant for restraint)
+    restraintmask=':1-420&!@H=', ! (atoms in residues 1-332 restrained)
+ &end
+
+eof
+

@@ -1,0 +1,41 @@
+# Design outputs
+03_design/design_runs/
+03_design/trajectory/
+03_design/slurm-*.out
+03_design/sorted_results.csv
+
+# Analysis outputs
+03_design/analysis/best_top/
+03_design/analysis/cleaned_top/
+03_design/analysis/sim_top/
+03_design/analysis/output/
+03_design/analysis/paper/
+03_design/analysis/_paper_figures/
+03_design/analysis/CYS/
+03_design/analysis/*.csv
+03_design/analysis/*.cxs
+03_design/analysis/*.png
+03_design/analysis/*.svg
+
+# Structure prep outputs
+01_structure_prep/cleaned*
+01_structure_prep/no_ter.pdb
+
+# Pocket analysis outputs
+02_pocket_analysis/results.csv
+02_pocket_analysis/vmd_res.txt
+02_pocket_analysis/trajectory/
+
+# Simulation outputs
+04_simulation/run_sim/
+04_simulation/*/run_*/
+
+# Python
+__pycache__/
+*.pyc
+
+# SLURM
+slurm-*.out
+
+# Claude Code
+.claude/

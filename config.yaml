@@ -1,0 +1,31 @@
+# Central configuration for the peptide design pipeline.
+# Edit the paths below to match your local environment.
+
+paths:
+  # Directory containing AlphaFold2 model weights (e.g. params/)
+  af2_params_dir: "/path/to/alphafold/weights"
+  # Pre-trained AF2BIND parameters
+  af2bind_params: "/path/to/af2bind_params/attempt_7_2k_lam0-03"
+  # Target PDB file (relative to repo root)
+  target_pdb: "01_structure_prep/8zcs.pdb"
+
+design:
+  target_chain: "A,B"
+  target_hotspot: "A91,B236,A81,A77,B217,B232,A94,A60,A95,A98,A63,B237,A80,B246,B214"
+  target_hotspot_A: "A91,A81,A77,A94,A60,A98,A63,A80"
+  target_hotspot_B: "B236,B217,B232,B237,B246,B214"
+  binder_len: 14
+  cyclic_offset: true
+  bugfix: true
+  use_multimer: true
+  num_recycles: 1
+  num_models: 5
+  learning_rate: 0.15
+  optimizer: "pssm_semigreedy"
+
+sasa:
+  probe_radius: 0.14
+  n_sphere_points: 960
+
+analysis:
+  plddt_threshold: 0.8

@@ -1,0 +1,39 @@
+#GGW Sim NPT Ensemble
+&cntrl
+    imin=0,
+    irest=1, 
+    ntx=5,
+    
+    igb=0,
+    nsnb=25,
+    cut=9.0,    
+    dielc=1.0, 
+
+    ntt=3, 
+    gamma_ln=5.0,
+    temp0=300, 
+    tautp=0.1,
+    ntp=1, 
+    pres0=1.0,
+    comp=44.6, 
+    taup=1.0,
+    ntb=2, 
+    
+    ntc=2, 
+    ntf=2,
+     
+    ntr=1,
+    restraint_wt=2.5,
+    restraintmask=':1-420&!@H=',
+     
+    nstlim=25000, 
+    dt=0.001,    
+    ntpr=10000,
+    ntwx=10000,
+    iwrap=0,
+    ntxo=2,
+    ioutfm=1,
+
+ &end
+eof
+

@@ -1,0 +1,28 @@
+#Load the Force Field
+source ./leaprc.cyclic.ff14SB
+#source leaprc.protein.ff14SB
+loadamberparams frcmod.ionsjc_tip3p
+source leaprc.water.tip3p
+
+#Load the PDB
+mol=loadpdb run_1.pdb
+
+#Head to tail peptide bond
+bond mol.1.N mol.2.C
+
+#solvate the structure
+solvateoct mol TIP3PBOX 12.5
+
+#Add ions to neutralize and get 0.15 M NaCl
+addionsRand mol Na+ 61 Cl- 61
+addIonsRand mol Na+ 0
+addIonsRand mol Cl- 0
+
+
+#Check & LOADOFF the topology and coordinate files
+check mol
+savepdb mol system_wb.pdb
+saveamberparm mol system_wb.prmtop system_wb.rst
+
+quit
+

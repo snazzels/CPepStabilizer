@@ -1,0 +1,38 @@
+# heat up
+&cntrl
+    imin = 0,
+    irest = 0,  ! 0=no restart, 1=restart (!)
+    ioutfm = 1, ! format of mdcrd 0=ASCII, 1=NetCDF
+    ntx = 1,    ! 1=no velocities/new MD, 5=restart with velocities (!)
+    ntxo = 2,   ! 2=NetCDF (default)
+    ntb = 1,
+    ntp = 0,
+    cut = 10.0,
+    ntr = 1,
+    restraint_wt = 5.0,
+    restraintmask=':1-420&!@H=',
+    nmropt = 1,
+    ntc = 2,
+    ntf = 2,
+    temp0 = 300.0,
+    ntt = 3,
+    gamma_ln = 5.0,  ! higher collision (instead of 2)
+    ig = -1,
+    nstlim = 80000,  ! doubled heating time
+    dt = 0.001,      ! smaller dt
+    ntpr = 1000,
+    ntwx = 1000,
+    ntwr = 10000 
+    vlimit = 10,     ! velocities higher than vlimit are capped (default: 20)
+    /
+&end
+&wt
+    type='TEMP0',
+    istep1=0,
+    istep2=80000,    ! == nstlim
+    value1=0,
+    value2=300,
+&end
+&wt type='END', &end
+eof
+
