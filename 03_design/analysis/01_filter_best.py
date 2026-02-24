@@ -8,12 +8,9 @@ Reads results.csv, filters rows, adds pdb_filename column, overwrites results.cs
 import os
 import shutil
 import pandas as pd
-import yaml
-from pathlib import Path
+from _load_config import load_config
 
-_repo_root = Path(__file__).resolve().parents[2]
-with open(_repo_root / "config.yaml") as _f:
-    _config = yaml.safe_load(_f)
+_config = load_config()
 
 
 def process_design_results(input_csv, best_top_dir, design_runs_dir):
@@ -49,10 +46,16 @@ def process_design_results(input_csv, best_top_dir, design_runs_dir):
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--runs_dir', default='../design_runs',
+                        help='Design runs directory (default: ../design_runs)')
+    args = parser.parse_args()
+
     result_df = process_design_results(
         input_csv='results.csv',
         best_top_dir='best_top',
-        design_runs_dir='../design_runs',
+        design_runs_dir=args.runs_dir,
     )
     print("\nFiltered Results:")
     print(result_df)

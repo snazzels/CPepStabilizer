@@ -86,16 +86,18 @@ python3 -u 03_design/run_design.py -n <num_runs> -o <output_dir>
 
 ### Analysis pipeline (run sequentially)
 
+Step 05 requires a GPU and the full `peptide_design` environment with ColabDesign. All other steps require only the base scientific Python stack.
+
 ```bash
 cd 03_design/analysis
-python3 00_sort_results.py
-python3 01_filter_best.py
-python3 02_pdb_clean.py
-python3 03_filter_cys.py
-python3 04_bsa.py
-python3 05_mpnn.py
-python3 06_merge.py
-python3 07_correlation.py
+python3 00_sort_results.py        # parse design run logs → results.csv
+python3 01_filter_best.py         # filter by pLDDT + hard constraint
+python3 02_pdb_clean.py           # clean PDBs via pdb4amber
+python3 03_filter_cys.py          # remove designs with Cys/unknown residues
+python3 04_bsa.py                 # buried surface area (MDTraj)
+python3 05_mpnn.py                # MPNN sequence validation (ColabDesign, GPU)
+python3 06_merge.py               # merge MPNN results into results.csv
+python3 07_correlation.py         # statistical correlations (scipy)
 ```
 
 ### Simulation setup and execution

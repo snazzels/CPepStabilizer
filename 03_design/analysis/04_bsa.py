@@ -9,12 +9,9 @@ import os
 import mdtraj as md
 import numpy as np
 import pandas as pd
-import yaml
-from pathlib import Path
+from _load_config import load_config
 
-_repo_root = Path(__file__).resolve().parents[2]
-with open(_repo_root / "config.yaml") as _f:
-    _config = yaml.safe_load(_f)
+_config = load_config()
 
 probe_radius = _config["sasa"]["probe_radius"]
 n_sphere_points = _config["sasa"]["n_sphere_points"]
