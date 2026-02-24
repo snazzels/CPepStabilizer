@@ -33,13 +33,14 @@ Core design engine. `run_design.py` orchestrates ColabDesign's AlphaFold2 multim
 - `loss_functions.py`: `PeptideLoss` class — cyclic offset, COM distance from hotspot, cis/trans penalty, dihedral computation
 - `sasa_functions.py`: Vectorized Shrake-Rupley SASA via JAX vmap, 3-component BSA loss (weights: w1=1.0, w2=0.5, w3=2.0)
 
-**Post-design analysis** (`03_design/analysis/`) runs as a numbered sequential pipeline:
-1. `01_filter_best.py` — filter by hard constraint & pLDDT threshold
-2. `02_pdb_clean.py` — add TER lines, assign chains, run pdb4amber
+**Post-design analysis** (`03_design/analysis/`) runs as a numbered sequential pipeline. Each step reads and updates a single `results.csv`, adding columns as the pipeline progresses:
+0. `00_sort_results.py` — parse run logs into `results.csv`, ranked by pLDDT
+1. `01_filter_best.py` — filter by hard constraint & pLDDT threshold (reads from config.yaml), copy PDBs
+2. `02_pdb_clean.py` — add TER lines, assign chains, run pdb4amber; reads file list from `results.csv` by default
 3. `03_filter_cys.py` — remove designs with single cysteines or unknown residues
-4. `04_bsa.py` — buried surface area calculation
+4. `04_bsa.py` — buried surface area calculation (probe radius and sphere points from config.yaml)
 5. `05_mpnn.py` — MPNN sequence validation, PSSM correlation, identity metrics
-6. `06_merge.py` — merge design metrics with MPNN results
+6. `06_merge.py` — merge MPNN results into `results.csv`
 7. `07_correlation.py` — statistical correlations
 
 Additional analysis scripts: `composition.py`, `logo.py`, `perplexity.py`, `paper_filter.py`, `paper_plot.py`.
@@ -71,6 +72,7 @@ python3 -u 03_design/run_design.py -n <num_runs> -o <output_dir>
 ### Analysis pipeline (sequential, run in order)
 ```bash
 cd 03_design/analysis
+python3 00_sort_results.py
 python3 01_filter_best.py
 python3 02_pdb_clean.py
 python3 03_filter_cys.py

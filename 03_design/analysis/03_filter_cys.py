@@ -27,7 +27,7 @@ def get_chain_c_sequence(pdb_file):
     return sequence
 
 
-def filter_cys(cleaned_top_dir="cleaned_top", csv_path="filtered_best.csv"):
+def filter_cys(cleaned_top_dir="cleaned_top", csv_path="results.csv"):
     """Filter PDBs with C or X in chain C and update the CSV accordingly."""
     cys_dir = os.path.join(os.path.dirname(cleaned_top_dir.rstrip("/")), "CYS")
     os.makedirs(cys_dir, exist_ok=True)

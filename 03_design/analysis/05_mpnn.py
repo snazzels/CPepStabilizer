@@ -394,7 +394,7 @@ def main(
     pdb_files = glob.glob(os.path.join(pdb_dir, "*.pdb"))
     
     for pdb_path in pdb_files:
-        pdb_name = os.path.splitext(os.path.basename(pdb_path))[0]
+        pdb_name = os.path.basename(pdb_path)  # keep .pdb extension for joining with results.csv
         print(f"\nProcessing {pdb_name}...")
         
         # Prepare MPNN inputs
@@ -514,14 +514,14 @@ def main(
     
     # Create identity results DataFrame
     identity_df = pd.DataFrame(
-        identity_data, 
-        columns=['File', 'Avg Exact Identity', 'Avg Adjusted Identity', 'Perplexity', 'Adj. Perplexity']
+        identity_data,
+        columns=['pdb_filename', 'Avg Exact Identity', 'Avg Adjusted Identity', 'Perplexity', 'Adj. Perplexity']
     )
-    
+
     # Create correlation results DataFrame
     correlation_df = pd.DataFrame(
         correlation_data,
-        columns=['File', 'Avg Pearson Correlation', 'Avg Spearman Correlation', 'PSSM Entropy', 'Sequence Entropy']
+        columns=['pdb_filename', 'Avg Pearson Correlation', 'Avg Spearman Correlation', 'PSSM Entropy', 'Sequence Entropy']
     )
     
     # Sort and save results
@@ -540,6 +540,7 @@ def main(
     print(f"\nSUMMARY:")
     print(f"Average Pearson correlation across all files: {correlation_df['Avg Pearson Correlation'].mean():.4f}")
     print(f"Average Spearman correlation across all files: {correlation_df['Avg Spearman Correlation'].mean():.4f}")
+
 
 
 if __name__ == "__main__":

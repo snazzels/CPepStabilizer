@@ -2,7 +2,6 @@
 03_design/design_runs/
 03_design/trajectory/
 03_design/slurm-*.out
-03_design/sorted_results.csv
 
 # Analysis outputs
 03_design/analysis/best_top/
@@ -12,7 +11,8 @@
 03_design/analysis/paper/
 03_design/analysis/_paper_figures/
 03_design/analysis/CYS/
-03_design/analysis/*.csv
+03_design/analysis/results.csv
+03_design/analysis/perplexity_outliers.csv
 03_design/analysis/*.cxs
 03_design/analysis/*.png
 03_design/analysis/*.svg

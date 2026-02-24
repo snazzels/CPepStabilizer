@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import os
 
 # Input file
-csv_file = os.path.join("output", "sequence_identity_results.csv")
+csv_file = "results.csv"
 
 # Load data
 df = pd.read_csv(csv_file)
@@ -20,7 +20,7 @@ filtered = df[df["Perplexity"] <= threshold]
 
 print("Outliers (Perplexity > 15):")
 print(outliers)
-outliers.to_csv("output/perplexity_outliers.csv", index=False)
+outliers.to_csv("perplexity_outliers.csv", index=False)
 
 # Create figure with 2 rows and 2 columns
 fig, axes = plt.subplots(2, 2, figsize=(14, 12))

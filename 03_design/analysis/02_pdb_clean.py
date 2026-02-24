@@ -3,6 +3,7 @@
 import os
 import argparse
 import subprocess
+import pandas as pd
 
 def add_ter_lines(pdb_content):
     """Add TER lines between residues with non-sequential IDs"""
@@ -119,24 +120,28 @@ def process_pdb_file(input_file, output_dir, use_pdb4amber=True):
 
 def main():
     parser = argparse.ArgumentParser(description="Process PDB files to add TER lines and assign chain identifiers.")
-    parser.add_argument("input", help="The path to a PDB file or directory containing PDB files")
+    parser.add_argument("input", nargs="?", default=None,
+                        help="PDB file or directory to process. Omit to read file list from results.csv.")
     parser.add_argument("-o", "--output_dir", default="cleaned_top", help="The directory to save processed PDB files")
     parser.add_argument("--skip_pdb4amber", action="store_true", help="Skip the pdb4amber cleaning step")
     args = parser.parse_args()
 
-    # Create output directory if it doesn't exist
-    if not os.path.exists(args.output_dir):
-        os.makedirs(args.output_dir)
+    os.makedirs(args.output_dir, exist_ok=True)
 
-    # Determine if the input is a directory or a file
-    if os.path.isdir(args.input):
-        # Process all PDB files in the directory
+    if args.input is None:
+        # Default: process only PDBs listed in results.csv
+        df = pd.read_csv("results.csv")
+        for pdb_filename in df["pdb_filename"].dropna():
+            input_file = os.path.join("best_top", pdb_filename)
+            if os.path.isfile(input_file):
+                process_pdb_file(input_file, args.output_dir, not args.skip_pdb4amber)
+            else:
+                print(f"File not found, skipping: {input_file}")
+    elif os.path.isdir(args.input):
         for filename in os.listdir(args.input):
             if filename.endswith(".pdb"):
-                input_file = os.path.join(args.input, filename)
-                process_pdb_file(input_file, args.output_dir, not args.skip_pdb4amber)
+                process_pdb_file(os.path.join(args.input, filename), args.output_dir, not args.skip_pdb4amber)
     elif os.path.isfile(args.input) and args.input.endswith(".pdb"):
-        # Process a single PDB file
         process_pdb_file(args.input, args.output_dir, not args.skip_pdb4amber)
     else:
         print(f"Error: {args.input} is not a valid PDB file or directory")

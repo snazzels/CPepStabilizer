@@ -23,13 +23,16 @@ Uses ColabDesign's AlphaFold2 multimer model with custom loss functions to
 generate 14-residue cyclic peptide binders.
 
 Post-design analysis pipeline (`03_design/analysis/`):
-1. `01_filter_best.py` — filter by hard constraint & pLDDT threshold
+0. `00_sort_results.py` — parse run logs into `results.csv`, ranked by pLDDT
+1. `01_filter_best.py` — filter by hard constraint & pLDDT threshold, copy PDBs
 2. `02_pdb_clean.py` — add TER lines, assign chains, run pdb4amber
 3. `03_filter_cys.py` — remove designs with single cysteines or unknown residues
 4. `04_bsa.py` — buried surface area calculation
 5. `05_mpnn.py` — MPNN sequence validation, PSSM correlation, identity metrics
-6. `06_merge.py` — merge design metrics with MPNN results
+6. `06_merge.py` — merge MPNN results into `results.csv`
 7. `07_correlation.py` — statistical correlations
+
+Each step reads and updates a single `results.csv` file, adding columns as the pipeline progresses.
 
 ### Phase 4 — Simulation (`04_simulation/`)
 AMBER molecular dynamics with MM/GBSA binding energy analysis.
@@ -85,6 +88,7 @@ python3 -u 03_design/run_design.py -n <num_runs> -o <output_dir>
 
 ```bash
 cd 03_design/analysis
+python3 00_sort_results.py
 python3 01_filter_best.py
 python3 02_pdb_clean.py
 python3 03_filter_cys.py
