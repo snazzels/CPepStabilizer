@@ -372,102 +372,97 @@ def main(
     rm_aa=None,
     num_seqs=32,
     sampling_temp=0.1,
-    n_res_identity=14
+    n_res_identity=10,
+    calc_perplexity=False,
 ):
     """
-    Main function to run ProteinMPNN design and sequence identity analysis
-    
-    Parameters:
-    - Various parameters for ProteinMPNN design and sequence identity calculation
+    Main function to run ProteinMPNN design and sequence identity analysis.
+
+    Sequence identity is computed by comparing MPNN-sampled peptide sequences
+    (last chain in the /‑delimited output) against the original peptide from
+    the PDB (non-fixed positions).
     """
-    # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
-    # Prepare ProteinMPNN model
     mpnn_model = mk_mpnn_model(model_name)
 
-    # Prepare results storage
     identity_data = []
     correlation_data = []
 
-    # Process each PDB file
     pdb_files = glob.glob(os.path.join(pdb_dir, "*.pdb"))
-    
+
     for pdb_path in pdb_files:
         pdb_name = os.path.basename(pdb_path)  # keep .pdb extension for joining with results.csv
         print(f"\nProcessing {pdb_name}...")
-        
-        # Prepare MPNN inputs
+
         mpnn_model.prep_inputs(
             pdb_filename=pdb_path,
-            chain=chains, 
+            chain=chains,
             homooligomer=homooligomer,
-            fix_pos=fix_pos, 
+            fix_pos=fix_pos,
             inverse=inverse,
-            rm_aa=rm_aa, 
+            rm_aa=rm_aa,
             verbose=True
         )
-        
-        # Identify non-fixed sequence
+
+        # Identify non-fixed sequence (the peptide)
         L = sum(mpnn_model._lengths)
         non_fixed_mask = np.ones(L, dtype=bool)
         if "fix_pos" in mpnn_model._inputs:
             non_fixed_mask[mpnn_model._inputs["fix_pos"]] = False
         non_fixed_seq = "".join([order_aa.get(a, "H") for a, keep in zip(mpnn_model._inputs["S"], non_fixed_mask) if keep])
-        
+
         # Sample sequences
         out = mpnn_model.sample(
-            num=num_seqs//32, 
+            num=num_seqs//32,
             batch=32,
             temperature=sampling_temp,
             rescore=homooligomer
         )
-        
-        # Prepare output filenames
+
         fasta_filename = os.path.join(output_dir, f"{pdb_name}_design.fasta")
         csv_filename = os.path.join(output_dir, f"{pdb_name}.csv")
-        
-        # Write FASTA file
+
         with open(fasta_filename, "w") as fasta:
             for n in range(num_seqs):
                 line = f'>score:{out["score"][n]:.3f}_seqid:{out["seqid"][n]:.3f}\n{out["seq"][n]}'
                 fasta.write(line + "\n")
-        
-        # Prepare DataFrame
+
         labels = ["score", "seqid", "seq", "non_fixed_seq"]
         data = [[out["score"][n], out["seqid"][n], out["seq"][n], non_fixed_seq] for n in range(num_seqs)]
         df = pd.DataFrame(data, columns=labels)
         df.to_csv(csv_filename, index=False)
-        
+
         # Calculate PSSM and save
         ar_mask = np.zeros((L,L))
         logits = mpnn_model.score(ar_mask=ar_mask)["logits"]
         pssm = softmax(logits, -1)
         np.savetxt(os.path.join(output_dir, f"{pdb_name}_pssm.txt"), pssm)
 
-        # ===== NEW: PSSM-SEQUENCE CORRELATION ANALYSIS =====
+        # PSSM-sequence correlation analysis
+        # Split sampled sequences on '/' to get the peptide chain only
+        peptide_seqs = [s.split('/')[-1] for s in out["seq"]]
+        n_pep = len(non_fixed_seq)
+        n_analyze = min(n_res_identity, n_pep)
+
         print("Analyzing PSSM-sequence correlations...")
-        
-        # Analyze correlation between PSSM and actual sequences
         correlation_analysis_file = os.path.join(output_dir, f"{pdb_name}_correlation_analysis.txt")
         correlation_stats = analyze_pssm_sequence_correlation(
-            pssm, 
-            out["seq"], 
-            n_residues=n_res_identity,
+            pssm,
+            peptide_seqs,
+            n_residues=n_analyze,
             output_file=correlation_analysis_file
         )
-        
-        # Create correlation plot
+
         correlation_plot_file = os.path.join(output_dir, f"{pdb_name}_correlation_plot.png")
         correlation_fig = create_correlation_plot(
-            pssm, 
-            out["seq"], 
-            n_residues=n_res_identity,
+            pssm,
+            peptide_seqs,
+            n_residues=n_analyze,
             output_file=correlation_plot_file
         )
-        plt.close(correlation_fig)  # Close to free memory
-        
-        # Store correlation results
+        plt.close(correlation_fig)
+
         correlation_data.append([
             pdb_name,
             correlation_stats['avg_pearson_correlation'],
@@ -475,74 +470,71 @@ def main(
             correlation_stats['overall_pssm_entropy'],
             correlation_stats['overall_sequence_entropy']
         ])
-        
+
         print(f"  Average Pearson correlation: {correlation_stats['avg_pearson_correlation']:.4f}")
         print(f"  Average Spearman correlation: {correlation_stats['avg_spearman_correlation']:.4f}")
-        # ===== END NEW SECTION =====
 
-        # Compute perplexity for last n residues
-        perplexity = calculate_perplexity(pssm, non_fixed_seq, n_residues=n_res_identity)
-        adj_perplexity = calculate_adjusted_perplexity(pssm, non_fixed_seq, n_residues=n_res_identity)
+        # Perplexity (optional)
+        perplexity = adj_perplexity = None
+        if calc_perplexity:
+            perplexity = calculate_perplexity(pssm, non_fixed_seq, n_residues=n_analyze)
+            adj_perplexity = calculate_adjusted_perplexity(pssm, non_fixed_seq, n_residues=n_analyze)
+            print(f"  Perplexity (last {n_analyze} residues): {perplexity:.3f}")
+            print(f"  Adjusted perplexity: {adj_perplexity:.3f}")
 
-        print(f"  Perplexity (last {n_res_identity} residues): {perplexity:.3f}")
-        print(f"  Adjusted perplexity: {adj_perplexity:.3f}")
-        
-        # Extract and write top probabilities
-        top_probs = extract_top_probabilities(pssm, n_residues=n_res_identity)
+        top_probs = extract_top_probabilities(pssm, n_residues=n_analyze)
         write_top_probabilities_to_file(top_probs, os.path.join(output_dir, f"{pdb_name}_top.txt"))
-        
-        # Extract sequences for last n_res_identity residues
-        sequences = df['seq'].astype(str).str[-n_res_identity:]
-        non_fixed_seq_subset = non_fixed_seq[-n_res_identity:]
-        
-        # Calculate sequence identities
-        exact_identity, adjusted_identity = calculate_sequence_identity(sequences, non_fixed_seq_subset)
-        
-        # Store identity results
+
+        # Sequence identity: compare sampled peptide chains against original peptide
+        sequences = pd.Series(peptide_seqs)
+        exact_identity, adjusted_identity = calculate_sequence_identity(sequences, non_fixed_seq)
+
         avg_exact_identity = exact_identity.mean()
         avg_adjusted_identity = adjusted_identity.mean()
-        
-        identity_data.append([
-            pdb_name, 
-            avg_exact_identity, 
-            avg_adjusted_identity,
-            perplexity,
-            adj_perplexity
-        ])
-        
-        print(f"  Results saved to {csv_filename} and {fasta_filename}")
-    
-    # Create identity results DataFrame
-    identity_df = pd.DataFrame(
-        identity_data,
-        columns=['pdb_filename', 'Avg Exact Identity', 'Avg Adjusted Identity', 'Perplexity', 'Adj. Perplexity']
-    )
 
-    # Create correlation results DataFrame
+        row = [pdb_name, avg_exact_identity, avg_adjusted_identity]
+        if calc_perplexity:
+            row += [perplexity, adj_perplexity]
+        identity_data.append(row)
+
+        print(f"  Avg exact identity: {avg_exact_identity:.3f}  adjusted: {avg_adjusted_identity:.3f}")
+        print(f"  Results saved to {csv_filename} and {fasta_filename}")
+
+    id_cols = ['pdb_filename', 'Avg Exact Identity', 'Avg Adjusted Identity']
+    if calc_perplexity:
+        id_cols += ['Perplexity', 'Adj. Perplexity']
+    identity_df = pd.DataFrame(identity_data, columns=id_cols)
+
     correlation_df = pd.DataFrame(
         correlation_data,
         columns=['pdb_filename', 'Avg Pearson Correlation', 'Avg Spearman Correlation', 'PSSM Entropy', 'Sequence Entropy']
     )
-    
-    # Sort and save results
+
     identity_df_sorted = identity_df.sort_values(by='Avg Exact Identity', ascending=False)
     identity_csv_path = os.path.join(output_dir, "sequence_identity_results.csv")
     identity_df_sorted.to_csv(identity_csv_path, index=False)
-    
+
     correlation_df_sorted = correlation_df.sort_values(by='Avg Pearson Correlation', ascending=False)
     correlation_csv_path = os.path.join(output_dir, "correlation_results.csv")
     correlation_df_sorted.to_csv(correlation_csv_path, index=False)
-    
-    print(f"\nSaved sequence identity results to: {identity_csv_path}")
-    print(f"Saved correlation analysis results to: {correlation_csv_path}")
-    
-    # Print summary statistics
-    print(f"\nSUMMARY:")
-    print(f"Average Pearson correlation across all files: {correlation_df['Avg Pearson Correlation'].mean():.4f}")
-    print(f"Average Spearman correlation across all files: {correlation_df['Avg Spearman Correlation'].mean():.4f}")
 
+    print(f"\nSaved sequence identity results to: {identity_csv_path}")
+    print(f"Saved correlation results to: {correlation_csv_path}")
 
 
 if __name__ == "__main__":
-    # Example usage with default parameters
-    main()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--pdb_dir", default="cleaned_top/")
+    parser.add_argument("--output_dir", default="output")
+    parser.add_argument("--num_seqs", type=int, default=32)
+    parser.add_argument("--sampling_temp", type=float, default=0.1)
+    parser.add_argument("--perplexity", action="store_true", help="Calculate perplexity (slow)")
+    args = parser.parse_args()
+    main(
+        pdb_dir=args.pdb_dir,
+        output_dir=args.output_dir,
+        num_seqs=args.num_seqs,
+        sampling_temp=args.sampling_temp,
+        calc_perplexity=args.perplexity,
+    )

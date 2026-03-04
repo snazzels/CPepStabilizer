@@ -97,7 +97,7 @@ python3 03_filter_cys.py          # remove designs with Cys/unknown residues
 python3 04_bsa.py                 # buried surface area (MDTraj)
 python3 05_mpnn.py                # MPNN sequence validation (ColabDesign, GPU)
 python3 06_merge.py               # merge MPNN results into results.csv
-python3 07_correlation.py         # statistical correlations (scipy)
+# python3 07_correlation.py       # optional: statistical correlations (scipy)
 ```
 
 ### Simulation setup and execution
