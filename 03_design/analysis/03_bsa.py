@@ -22,7 +22,7 @@ bsa_a_values = []
 bsa_b_values = []
 sasa_peptide_in_complex_values = []
 
-best_top_dir = 'cleaned_top'
+best_top_dir = 'pdbs'
 
 for _, row in df.iterrows():
     pdb_filename = row['pdb_filename']

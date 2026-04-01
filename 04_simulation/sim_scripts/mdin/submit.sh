@@ -3,7 +3,6 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:1
-#SBATCH --exclude=t38cn030,t38cn038,t38cn028,t38cn015,t38cn024,t38cn027,t38cn016,t38cn018,t38cn031,t38cn020,t38cn021,t38cn032,t38cn019,t38cn022,t38cn054,t38cn053
 #SBATCH --time=1-23:00:00
 
 module load cuda
@@ -31,14 +30,35 @@ echo "Date of simulation start: $(date)"
 
 
 
+# Derive chain residue ranges from the PDB in top_prep/
+pdb_file=$(ls ../top_prep/*.pdb | head -1)
+ranges=$(python3 - "$pdb_file" <<'EOF'
+import sys
+chains = {}
+for line in open(sys.argv[1]):
+    if line.startswith("ATOM"):
+        ch = line[21]; res = int(line[22:26])
+        if ch not in chains: chains[ch] = [res, res]
+        else:
+            if res < chains[ch][0]: chains[ch][0] = res
+            if res > chains[ch][1]: chains[ch][1] = res
+for ch in ("A", "B", "C"):
+    lo, hi = chains[ch]
+    print(f"{ch} {lo} {hi}")
+EOF
+)
+a_range=$(echo "$ranges" | awk '$1=="A"{print $2"-"$3}')
+b_range=$(echo "$ranges" | awk '$1=="B"{print $2"-"$3}')
+p_range=$(echo "$ranges" | awk '$1=="C"{print $2"-"$3}')
+
 # Run Simulation
 bash ./run.sh
 
 
-# MMGBSA
+# MMGBSA: prepare trajectories then submit AL/BL/AB_L jobs
 cd ../mmgbsa
-bash ./single.sh -a 1-210 -b 277-376 -p 377-384
-#bash ./submit.sh
+bash ./single.sh -a "$a_range" -b "$b_range" -p "$p_range"
+bash ./submit.sh
 
 #bash ./analyze_mmgbsa.py
 

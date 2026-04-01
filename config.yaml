@@ -3,13 +3,14 @@
 
 paths:
   # Directory containing AlphaFold2 model weights (e.g. params/)
-  af2_params_dir: "/path/to/alphafold/weights"
+  af2_params_dir: "/home/niklashalbwedl/henmount/apps/params"
   # Pre-trained AF2BIND parameters
-  af2bind_params: "/path/to/af2bind_params/attempt_7_2k_lam0-03"
+  af2bind_params: "/home/niklashalbwedl/henmount/apps/af2bind_params/attempt_7_2k_lam0-03"
   # Target PDB file (relative to repo root)
-  target_pdb: "01_structure_prep/8zcs.pdb"
+  target_pdb: "/home/niklashalbwedl/niklas_mount/phd/05_design/example_paper/01_structure_prep/cleaned_no_pep.pdb"
 
 design:
+  num_runs: 1
   target_chain: "A,B"
   target_hotspot: "A91,B236,A81,A77,B217,B232,A94,A60,A95,A98,A63,B237,A80,B246,B214"
   target_hotspot_A: "A91,A81,A77,A94,A60,A98,A63,A80"
@@ -29,3 +30,12 @@ sasa:
 
 analysis:
   plddt_threshold: 0.8
+  # Thresholds for selecting designs to pass to simulation (06_select_for_sim.py)
+  seq_id_threshold: 0.6
+  bsa_min_threshold: 600.0
+
+environments:
+  # General analysis (pandas, matplotlib, mdtraj, yaml)
+  python: "/home/niklashalbwedl/bin_custom/micromamba/envs/paper_12/bin/python"
+  # ColabDesign + GPU (for MPNN step)
+  python_gpu: "/home/niklashalbwedl/bin_custom/micromamba/envs/test_colab/bin/python"

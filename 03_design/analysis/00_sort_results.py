@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """
-Step 00: Parse design run logs and produce results.csv ranked by pLDDT.
+Step 00: Parse design run logs, filter by pLDDT threshold, and copy PDB files.
 
-Run from 03_design/analysis/. Reads ../design_runs/ by default.
+Reads run.log files from runs_dir, filters by hard == 1 and pLDDT >= threshold
+(from config.yaml), copies passing PDB files to pdbs/, and writes results.csv.
 """
 
 import os
-import csv
 import re
+import shutil
 import argparse
+import pandas as pd
+from _load_config import load_config
+
+_config = load_config()
 
 
 def extract_data_from_log(log_path):
@@ -40,12 +45,14 @@ def extract_data_from_log(log_path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Parse design run logs into results.csv')
-    parser.add_argument('--runs_dir', default='../design_runs',
-                        help='Design runs directory (default: ../design_runs)')
-    parser.add_argument('--output', default='results.csv',
-                        help='Output CSV (default: results.csv)')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--runs_dir', default='../design_runs')
+    parser.add_argument('--output', default='results.csv')
     args = parser.parse_args()
+
+    plddt_threshold = _config["analysis"]["plddt_threshold"]
+    pdbs_dir = "pdbs"
+    os.makedirs(pdbs_dir, exist_ok=True)
 
     all_data = []
     for run_dir in sorted(os.listdir(args.runs_dir)):
@@ -55,14 +62,27 @@ def main():
 
     all_data.sort(key=lambda x: x['plddt'], reverse=True)
 
-    fieldnames = ["run_id", "models", "index", "recycles", "hard", "soft", "temp",
-                  "loss", "i_con_1", "i_con_2", "plddt", "ptm", "i_ptm"]
-    with open(args.output, 'w', newline='') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(all_data)
+    df = pd.DataFrame(all_data)
+    filtered = df[(df['hard'] == 1) & (df['plddt'] >= plddt_threshold)].copy()
 
-    print(f"Written {len(all_data)} entries to {args.output}")
+    filenames = []
+    for _, row in filtered.iterrows():
+        model_number = row['models'] - 1
+        pdb_src = os.path.join(args.runs_dir, row['run_id'], 'trajectory',
+                               f'model_step_{model_number}.pdb')
+        if os.path.isfile(pdb_src):
+            new_filename = f"{row['run_id']}_model_step_{model_number}.pdb"
+            shutil.copy(pdb_src, os.path.join(pdbs_dir, new_filename))
+            filenames.append(new_filename)
+        else:
+            filenames.append(None)
+            print(f'File not found: {pdb_src}')
+
+    filtered['pdb_filename'] = filenames
+    filtered.to_csv(args.output, index=False)
+
+    print(f"Parsed {len(all_data)} entries from logs")
+    print(f"{len(filtered)} designs passed filter (pLDDT >= {plddt_threshold}, hard == 1) → {pdbs_dir}/")
 
 
 if __name__ == "__main__":

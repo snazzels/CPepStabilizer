@@ -11,7 +11,10 @@
 03_design/analysis/paper/
 03_design/analysis/_paper_figures/
 03_design/analysis/CYS/
+03_design/analysis/pdbs/
+03_design/analysis/sim_pdbs/
 03_design/analysis/results.csv
+03_design/analysis/cys_filtered.csv
 03_design/analysis/perplexity_outliers.csv
 03_design/analysis/*.cxs
 03_design/analysis/*.png

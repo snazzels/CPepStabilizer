@@ -1,22 +1,13 @@
-#!/bin/bash
-#SBATCH --job-name=peptide_design
-#SBATCH --nodes=1
-#SBATCH --gres=gpu:1
-#SBATCH --output=slurm_%j.out
-#SBATCH --error=slurm_%j.err
-
+#!/usr/bin/env bash
 set -euo pipefail
 
-# SLURM copies the script to a temp file, so BASH_SOURCE won't point to the
-# original. Walk up from SLURM_SUBMIT_DIR (or pwd) to find config.yaml.
 _find_config() {
-    local dir="${SLURM_SUBMIT_DIR:-$(pwd)}"
+    local dir="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
     for _ in 1 2 3 4 5; do
         [ -f "$dir/config.yaml" ] && echo "$dir/config.yaml" && return
         dir="$(dirname "$dir")"
     done
-    echo "ERROR: config.yaml not found above ${SLURM_SUBMIT_DIR:-$(pwd)}" >&2
-    exit 1
+    echo "ERROR: config.yaml not found" >&2; exit 1
 }
 
 CONFIG="$(_find_config)"
@@ -36,11 +27,8 @@ for line in open(path):
 " "$1" "$2" "$CONFIG"
 }
 
-PYTHON_GPU="$(_cfg environments python_gpu)"
-NUM_RUNS="$(_cfg design num_runs)"
-
-# Prepend GPU env's bin so JAX finds the bundled ptxas
+PYTHON_GPU="${PYTHON_GPU:-$(_cfg environments python_gpu)}"
 export PATH="$(dirname "$PYTHON_GPU"):$PATH"
 
-cd "$REPO_ROOT/03_design"
-"$PYTHON_GPU" -u run_design.py -n "$NUM_RUNS"
+cd "$REPO_ROOT/02_pocket_analysis"
+"$PYTHON_GPU" af2bind.py

@@ -1,11 +1,12 @@
 name: peptide_design
+# General analysis environment — covers stages 1, 2 (partial), 4 (analysis pipeline),
+# and 5 (simulation analysis). ColabDesign + JAX are handled in a separate environment
+# (used for run_design.py, af2bind, and the MPNN step).
 channels:
   - conda-forge
   - defaults
 dependencies:
-  - python>=3.9
-  - jax
-  - jaxlib
+  - python=3.12
   - numpy
   - pandas
   - matplotlib
@@ -13,5 +14,4 @@ dependencies:
   - biopython
   - mdtraj
   - pyyaml
-  - pip:
-    - colabdesign
+  - ambertools   # provides pdb4amber; full AMBER (pmemd.cuda, MMPBSA.py) requires separate install

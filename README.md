@@ -1,69 +1,81 @@
 # Cyclic Peptide Binder Design for a Protein Dimer Interface
 
-Computational pipeline for designing cyclic peptide binders targeting the
-protein dimer interface of PDB structure 8ZCS. The pipeline spans four
-sequential phases: structure preparation, binding pocket prediction,
-AlphaFold2-based peptide design, and molecular dynamics validation.
+![Workflow](workflow.png)
 
-## Pipeline Overview
+Computational pipeline for designing cyclic peptides that bind and stabilize a PPI interface, as described in our
+[publication](https://onlinelibrary.wiley.com/doi/full/10.1002/prot.70123).
+The pipeline runs in five sequential stages:
 
 ```
-01_structure_prep/  →  02_pocket_analysis/  →  03_design/  →  04_simulation/
-   (PDB cleanup)       (AF2BIND hotspots)     (ColabDesign)    (AMBER MD + MM/GBSA)
+1. Structure prep  →  2. Pocket analysis  →  3. Design  →  4. Filtering  →  5. Simulation
+  (pdb4amber)           (AF2BIND)           (ColabDesign)  (analysis/)      (AMBER MD)
 ```
 
-### Phase 1 — Structure Preparation (`01_structure_prep/`)
-Input PDB (8zcs.pdb) of the target protein complex.
+## System Requirements
 
-### Phase 2 — Pocket Analysis (`02_pocket_analysis/`)
-Runs AF2BIND to identify binding hotspot residues on the dimer interface.
-
-### Phase 3 — Peptide Design (`03_design/`)
-Uses ColabDesign's AlphaFold2 multimer model with custom loss functions to
-generate 14-residue cyclic peptide binders.
-
-Post-design analysis pipeline (`03_design/analysis/`):
-0. `00_sort_results.py` — parse run logs into `results.csv`, ranked by pLDDT
-1. `01_filter_best.py` — filter by hard constraint & pLDDT threshold, copy PDBs
-2. `02_pdb_clean.py` — add TER lines, assign chains, run pdb4amber
-3. `03_filter_cys.py` — remove designs with single cysteines or unknown residues
-4. `04_bsa.py` — buried surface area calculation
-5. `05_mpnn.py` — MPNN sequence validation, PSSM correlation, identity metrics
-6. `06_merge.py` — merge MPNN results into `results.csv`
-7. `07_correlation.py` — statistical correlations
-
-Each step reads and updates a single `results.csv` file, adding columns as the pipeline progresses.
-
-### Phase 4 — Simulation (`04_simulation/`)
-AMBER molecular dynamics with MM/GBSA binding energy analysis.
+- **GPU:** NVIDIA RTX 4090 or better recommended for all GPU-accelerated stages: AF2BIND and ColabDesign (stages 2–3), ProteinMPNN filtering (stage 4), and MD simulation (stage 5). The 24 GB vRAM of the RTX 4090 can handle approximately **500 total residues** (target protein + peptide) for the design stages. If your target exceeds this, truncate it to the binding interface region before running.
+- **CPU/RAM:** No special requirements beyond a standard workstation or HPC node.
+- **Storage:** Design runs can be large; ensure sufficient scratch space for trajectory files in stage 5.
 
 ## Installation
 
-### 1. Create the conda environment
+### 1. General environment
+
+[micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html)
+is recommended over conda for speed. `environment.yml` covers the analysis pipeline,
+pdb4amber, and simulation analysis (pandas, mdtraj, biopython, ambertools, etc.):
 
 ```bash
-conda env create -f environment.yml
-conda activate peptide_design
+micromamba env create -f environment.yml
+micromamba activate peptide_design
 ```
 
-### 2. Install ColabDesign
+Set the interpreter path in `config.yaml`:
+```yaml
+environments:
+  python: "/path/to/micromamba/envs/peptide_design/bin/python"
+```
 
-ColabDesign requires a manual installation. Follow the instructions at
-https://github.com/sokrypton/ColabDesign.
+### 2. ColabDesign environment
 
-### 3. AMBER / AmberTools
+Required for stages 2 (AF2BIND), 3 (design), and 4 (ProteinMPNN filtering). Follow the
+instructions at https://github.com/snazzels/ColabDesign to create a separate
+environment with ColabDesign and JAX. Additionally install `mdtraj` with numpy
+pinned to avoid breaking jaxlib:
 
-Molecular dynamics simulations in Phase 4 require AMBER (pmemd.cuda) and
-AmberTools (tleap, pdb4amber, MMPBSA.py). See https://ambermd.org/.
+```bash
+pip install "numpy<2" "mdtraj"
+```
+
+Set the path in `config.yaml`:
+
+```yaml
+environments:
+  python_gpu: "/path/to/colabdesign_env/bin/python"
+```
+
+### 3. AmberTools and AMBER
+
+**AmberTools** (free) is already included in `environment.yml` and provides
+`pdb4amber`, `tleap`, and `MMPBSA.py` for structure preparation, topology
+building, and MM/GBSA analysis.
+
+**AMBER** is required for GPU-accelerated production MD via `pmemd.cuda`.
+AMBER is free for academic use but carries a licence fee for commercial use.
+See https://ambermd.org/.
+
+> **Alternative MD engines:** If you do not have an AMBER licence, GPU-accelerated
+> MD can be run with [GROMACS](https://www.gromacs.org/) (free) or
+> [OpenMM](https://openmm.org/) (free). The simulation setup scripts
+> (`04_simulation/`) are written for AMBER and would need to be adapted.
 
 ### 4. AlphaFold2 weights
 
-Download AlphaFold2 model parameters and update the path in `config.yaml`.
+Download AlphaFold2 model parameters and set the path in `config.yaml`.
 
 ## Configuration
 
-All user-configurable paths and design parameters are in **`config.yaml`** at the
-repository root. Edit this file before running any pipeline step:
+Edit **`config.yaml`** at the repository root before running any stage:
 
 ```yaml
 paths:
@@ -72,43 +84,75 @@ paths:
   target_pdb: "01_structure_prep/8zcs.pdb"
 ```
 
-## Usage
+All scripts load this file automatically.
 
-### Design phase
+---
+
+## Workflow
+
+### Stage 1 — Structure Preparation
+
+Clean the input PDB with pdb4amber:
 
 ```bash
-# Submit via SLURM
-sbatch 03_design/submit.sh
-
-# Or run directly
-python3 -u 03_design/run_design.py -n <num_runs> -o <output_dir>
+pdb4amber -i target.pdb -o target_cleaned.pdb --prot
 ```
 
-### Analysis pipeline (run sequentially)
+### Stage 2 — Pocket Analysis
 
-Step 05 requires a GPU and the full `peptide_design` environment with ColabDesign. All other steps require only the base scientific Python stack.
+Run AF2BIND to identify binding hotspot residues:
+
+```bash
+bash 02_pocket_analysis/run_af2bind.sh
+```
+
+### Stage 3 — Peptide Design
+
+Submit the design job to SLURM. Runs unattended:
+
+```bash
+sbatch 03_design/submit.sh
+```
+
+### Stage 4 — Filtering & Analysis
+
+Run the full analysis pipeline:
 
 ```bash
 cd 03_design/analysis
-python3 00_sort_results.py        # parse design run logs → results.csv
-python3 01_filter_best.py         # filter by pLDDT + hard constraint
-python3 02_pdb_clean.py           # clean PDBs via pdb4amber
-python3 03_filter_cys.py          # remove designs with Cys/unknown residues
-python3 04_bsa.py                 # buried surface area (MDTraj)
-python3 05_mpnn.py                # MPNN sequence validation (ColabDesign, GPU)
-python3 06_merge.py               # merge MPNN results into results.csv
-# python3 07_correlation.py       # optional: statistical correlations (scipy)
+bash run_pipeline.sh --runs_dir ../../design_runs
 ```
 
-### Simulation setup and execution
+Inspect `summary_plots.png` (pLDDT, min BSA, sequence identity distributions),
+then set the selection thresholds in `config.yaml`:
+
+```yaml
+analysis:
+  seq_id_threshold: 0.3    # Avg Exact Identity
+  bsa_min_threshold: 200.0  # min(BSA_A, BSA_B) in Å²
+```
+
+Copy the passing designs to `sim_pdbs/`:
 
 ```bash
-cd 04_simulation/<batch>/
-bash ../setup_scripts/create_dir.sh -a 1-153 -b 154-303 -p 304-317
-python3 ../setup_scripts/new_mask.py <range>
-bash ../setup_scripts/leap.sh
-bash ../setup_scripts/submit_all.sh
+python3 06_select_for_sim.py
 ```
+
+### Stage 5 — Simulation
+
+Set up and submit AMBER MD runs from the batch directory:
+
+```bash
+cd 04_simulation/run_sim
+
+bash setup.sh                           # create dirs + build topologies
+bash ../setup_scripts/submit_all.sh     # submit all jobs to SLURM
+```
+
+All residue ranges and paths are read automatically from each PDB.
+Each job runs MD followed by MM/GBSA without further intervention.
+
+---
 
 ## License
 

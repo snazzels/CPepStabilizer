@@ -13,8 +13,8 @@
 
      ! Restraint options
     ntr=1,         ! Positional restraints for proteins, sugars, ligands, and lipid head groups
-    restraint_wt=2.5, ! (force constant for restraint)
-    restraintmask=':1-420&!@H=', ! (atoms in residues 1-332 restrained)
+    restraint_wt=5.0, ! (force constant for restraint)
+    restraintmask='!:WAT,Na+,Cl-&!@H=',
  &end
 
 eof

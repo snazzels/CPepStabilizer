@@ -1,41 +1,17 @@
-"""
-Minimal config.yaml reader — no pyyaml dependency.
-Handles the two-level structure used in this project's config.yaml.
-"""
-import re
-from pathlib import Path
+"""Load config.yaml from the repository root."""
+
+import os
+import yaml
 
 
 def load_config():
-    config_path = Path(__file__).resolve().parents[2] / "config.yaml"
-    result = {}
-    section = None
-    with open(config_path) as f:
-        for line in f:
-            line = line.rstrip()
-            if not line or line.lstrip().startswith('#'):
-                continue
-            # Top-level section key (no leading spaces, ends with colon)
-            if re.match(r'^[a-z_]+:$', line):
-                section = line[:-1]
-                result[section] = {}
-            # Nested key: value (2-space indent)
-            elif line.startswith('  ') and ':' in line and section is not None:
-                key, _, raw = line.strip().partition(': ')
-                if not raw:
-                    continue
-                raw = raw.strip().strip('"\'')
-                if raw == 'true':
-                    val = True
-                elif raw == 'false':
-                    val = False
-                else:
-                    try:
-                        val = int(raw)
-                    except ValueError:
-                        try:
-                            val = float(raw)
-                        except ValueError:
-                            val = raw
-                result[section][key] = val
-    return result
+    """Walk up from this file's location to find and load config.yaml."""
+    here = os.path.dirname(os.path.abspath(__file__))
+    path = here
+    for _ in range(6):
+        candidate = os.path.join(path, "config.yaml")
+        if os.path.isfile(candidate):
+            with open(candidate) as f:
+                return yaml.safe_load(f)
+        path = os.path.dirname(path)
+    raise FileNotFoundError(f"config.yaml not found above {here}")

@@ -10,7 +10,7 @@
     cut = 10.0,
     ntr = 1,
     restraint_wt = 5.0,
-    restraintmask=':1-420&!@H=',
+    restraintmask='!:WAT,Na+,Cl-&!@H=',
     nmropt = 1,
     ntc = 2,
     ntf = 2,

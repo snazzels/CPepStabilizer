@@ -36,11 +36,11 @@ def af2bind(outputs, mask_sidechains=True, seed=0):
     model_type = f"split_nosc_pair_A_split_nosc_pair_B_{seed}"
   else:
     model_type = f"split_pair_A_split_pair_B_{seed}"
-  af2bind_params_dir = _config["paths"]["af2bind_params"]
+  af2bind_params_dir = str(_repo_root / _config["paths"]["af2bind_params"])
   with open(f"{af2bind_params_dir}/{model_type}.pickle","rb") as handle:
     params_ = pickle.load(handle)
   params_ = dict(**params_["~"], **params_["linear"])
-  p = jax.tree_map(lambda x:np.asarray(x), params_)
+  p = jax.tree_util.tree_map(lambda x:np.asarray(x), params_)
 
   # get predictions
   x = (x - p["mean"]) / p["std"]

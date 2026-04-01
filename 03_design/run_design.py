@@ -20,6 +20,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.special import softmax
 
+# Custom loss functions (cyclic offset, COM distance, cis/trans penalty, BSA loss).
+# Currently only add_cyclic_offset is active; the others are available for future use.
 from functions_design.loss_functions import *
 from functions_design.sasa_functions import *
 
@@ -89,7 +91,8 @@ def run_design(run_index, output_dir):
         # Bugfixed version of cyclic offset (True)
         bugfix = design_cfg["bugfix"]
 
-        # Initialize PeptideLoss (from functions)
+        # PeptideLoss provides cis_loss and com_loss; instantiated but not currently
+        # added to the model (available for future use via model.add_losses(...)).
         pep_loss = PeptideLoss(n_pep_res=binder_len, hotspot_res=target_hotspot, bound=100)
 
         # AF2 parameters (MCMC opt. uses only 1 model)

@@ -1,10 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=mmgbsa-AL
+#SBATCH --job-name=mmgbsa-AB
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8
 #SBATCH --gres=gpu:0
 #SBATCH --time=6:00:00
 #SBATCH --mem=10000MB
+#SBATCH --exclude=t38cn023,t38cn019,t38cn020,t38cn018,t38cn021,t38cn038,t38cn016,t38cn015,t38cn036,t38cn037
+
 module load ambertools
 
 echo "===INFORMATION==="
@@ -17,5 +19,5 @@ echo "CUDA home:   $CUDA_HOME"
 echo "Nodes:       $SLURM_JOB_NODELIST"
 echo "======"
 
-mpirun -np 8 MMPBSA.py.MPI -i ../gb.in -y ../AL.nc -cp ../AL.prmtop -sp ../AL.prmtop -rp ../A.prmtop -lp ../L.prmtop -o AL_output.dat -do AL_decomp.csv
+mpirun -np 8 MMPBSA.py.MPI -i ../gb.in -y ../AB.nc -cp ../AB.prmtop -sp ../AB.prmtop -rp ../A.prmtop -lp ../B.prmtop -o AB_output.dat -do AB_decomp.csv
 

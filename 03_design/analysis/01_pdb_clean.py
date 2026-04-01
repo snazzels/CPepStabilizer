@@ -3,6 +3,7 @@
 import os
 import argparse
 import subprocess
+import tempfile
 import pandas as pd
 
 def add_ter_lines(pdb_content):
@@ -73,48 +74,42 @@ def run_pdb4amber(input_file, output_file):
 
 def process_pdb_file(input_file, output_dir, use_pdb4amber=True):
     """Process a single PDB file with both ter lines and chain IDs"""
-    # Create temporary files for intermediate steps
     base_name = os.path.basename(input_file)
     output_file = os.path.join(output_dir, base_name)
-    temp_dir = os.path.join(output_dir, "temp")
-    
-    if not os.path.exists(temp_dir):
-        os.makedirs(temp_dir)
 
-    temp_ter_file = os.path.join(temp_dir, f"{os.path.splitext(base_name)[0]}_ter.pdb")
-    temp_cleaned_file = os.path.join(temp_dir, f"{os.path.splitext(base_name)[0]}_cleaned.pdb")
-    
-    # Read the input file
     with open(input_file, 'r') as file:
         pdb_content = file.read()
-    
+
     # Step 1: Add TER lines
     pdb_content_with_ter = add_ter_lines(pdb_content)
-    
-    # Write the intermediate file with TER lines
-    with open(temp_ter_file, 'w') as file:
-        file.write(pdb_content_with_ter)
-    
-    # Step 2: Clean with pdb4amber if requested
+
+    # Step 2: Clean with pdb4amber if requested (uses system temp dir)
     if use_pdb4amber:
-        success = run_pdb4amber(temp_ter_file, temp_cleaned_file)
-        if success:
-            # Read the cleaned file
-            with open(temp_cleaned_file, 'r') as file:
-                pdb_content = file.read()
-        else:
-            # If pdb4amber fails, use the file with TER lines
-            pdb_content = pdb_content_with_ter
+        with tempfile.NamedTemporaryFile(suffix="_ter.pdb", mode='w', delete=False) as tf_ter:
+            tf_ter.write(pdb_content_with_ter)
+            temp_ter_path = tf_ter.name
+        with tempfile.NamedTemporaryFile(suffix="_cleaned.pdb", delete=False) as tf_clean:
+            temp_clean_path = tf_clean.name
+        try:
+            success = run_pdb4amber(temp_ter_path, temp_clean_path)
+            if success:
+                with open(temp_clean_path, 'r') as file:
+                    pdb_content = file.read()
+            else:
+                pdb_content = pdb_content_with_ter
+        finally:
+            os.unlink(temp_ter_path)
+            if os.path.exists(temp_clean_path):
+                os.unlink(temp_clean_path)
     else:
         pdb_content = pdb_content_with_ter
-    
+
     # Step 3: Assign chain identifiers
     final_pdb_content = assign_chain_identifiers(pdb_content)
-    
-    # Write the final output file
+
     with open(output_file, 'w') as file:
         file.write(final_pdb_content)
-    
+
     print(f"Processed {input_file} and saved to {output_file}")
     return output_file
 
@@ -122,7 +117,7 @@ def main():
     parser = argparse.ArgumentParser(description="Process PDB files to add TER lines and assign chain identifiers.")
     parser.add_argument("input", nargs="?", default=None,
                         help="PDB file or directory to process. Omit to read file list from results.csv.")
-    parser.add_argument("-o", "--output_dir", default="cleaned_top", help="The directory to save processed PDB files")
+    parser.add_argument("-o", "--output_dir", default="pdbs", help="The directory to save processed PDB files")
     parser.add_argument("--skip_pdb4amber", action="store_true", help="Skip the pdb4amber cleaning step")
     args = parser.parse_args()
 
@@ -132,7 +127,7 @@ def main():
         # Default: process only PDBs listed in results.csv
         df = pd.read_csv("results.csv")
         for pdb_filename in df["pdb_filename"].dropna():
-            input_file = os.path.join("best_top", pdb_filename)
+            input_file = os.path.join("pdbs", pdb_filename)
             if os.path.isfile(input_file):
                 process_pdb_file(input_file, args.output_dir, not args.skip_pdb4amber)
             else:

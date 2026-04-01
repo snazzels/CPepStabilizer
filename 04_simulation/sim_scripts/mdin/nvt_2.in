@@ -22,7 +22,7 @@
      
     ntr=1,
     restraint_wt=2.5,
-    restraintmask=':1-420&!@H=',
+    restraintmask='!:WAT,Na+,Cl-&!@H=',
      
     nstlim=37500, 
     dt=0.001,    

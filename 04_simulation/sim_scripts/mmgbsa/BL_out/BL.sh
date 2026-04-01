@@ -5,9 +5,6 @@
 #SBATCH --gres=gpu:0
 #SBATCH --time=1:00:00
 #SBATCH --mem=10000MB
-#SBATCH --exclude=t38cn023,t38cn019,t38cn020,t38cn018,t38cn021,t38cn038,t38cn016,t38cn015,t38cn036,t38cn037,t38cn054
-
-
 module load ambertools
 
 echo "===INFORMATION==="

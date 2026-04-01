@@ -1,6 +1,6 @@
 set -e
 
-rootdir=$(pwd)
+rootdir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MDP=$rootdir/mdin
 
 # rst + top (relative to rootdir)

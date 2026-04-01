@@ -362,7 +362,7 @@ def calculate_adjusted_perplexity(pssm, reference_seq, n_residues=10, similar_re
 
 
 def main(
-    pdb_dir="cleaned_top/",
+    pdb_dir="pdbs/",
     output_dir="output",
     model_name="v_48_020",
     chains="A,B,C",
@@ -521,11 +521,21 @@ def main(
     print(f"\nSaved sequence identity results to: {identity_csv_path}")
     print(f"Saved correlation results to: {correlation_csv_path}")
 
+    # Merge identity results into results.csv (idempotent: drops existing MPNN columns first)
+    results_path = "results.csv"
+    if os.path.isfile(results_path):
+        df = pd.read_csv(results_path)
+        mpnn_cols = [c for c in identity_df.columns if c != "pdb_filename"]
+        df = df.drop(columns=[c for c in mpnn_cols if c in df.columns], errors="ignore")
+        merged = pd.merge(df, identity_df, on="pdb_filename", how="inner")
+        merged.to_csv(results_path, index=False)
+        print(f"Merged {len(merged)} rows into {results_path}")
+
 
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pdb_dir", default="cleaned_top/")
+    parser.add_argument("--pdb_dir", default="pdbs/")
     parser.add_argument("--output_dir", default="output")
     parser.add_argument("--num_seqs", type=int, default=32)
     parser.add_argument("--sampling_temp", type=float, default=0.1)
