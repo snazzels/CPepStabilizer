@@ -154,6 +154,28 @@ Each job runs MD followed by MM/GBSA without further intervention.
 
 ---
 
+---
+
+## References
+
+Tools used in this pipeline:
+
+1. **AlphaFold2 Multimer** — R. Evans, M. O'Neill, A. Pritzel, et al., "Protein Complex Prediction with AlphaFold-Multimer," *bioRxiv* (2021). https://doi.org/10.1101/2021.10.04.463034
+
+2. **ColabDesign** — sokrypton/ColabDesign: Making Protein Design Accessible to All via Google Colab. https://github.com/sokrypton/colabdesign
+
+3. **Cyclic peptide offset** — S. A. Rettie, K. V. Campbell, A. K. Bera, et al., "Cyclic Peptide Structure Prediction and Design Using AlphaFold2," *Nature Communications* 16, 4730 (2025). https://doi.org/10.1038/s41467-025-59940-7
+
+4. **AF2BIND** — A. Gazizov, A. Lian, C. A. Goverde, J. Mou, S. Ovchinnikov, and N. F. Polizzi, "AF2BIND: Predicting Small-Molecule Binding Sites Using the Pair Representation of AlphaFold2," *Nature Methods* 23, 626–635 (2026). https://doi.org/10.1038/s41592-026-03011-2
+
+5. **ProteinMPNN** — J. Dauparas, I. Anishchenko, N. Bennett, et al., "Robust Deep Learning–Based Protein Sequence Design Using ProteinMPNN," *Science* 378 (2022): 49–56. https://doi.org/10.1126/science.add2187
+
+6. **MDTraj** — R. T. McGibbon, K. A. Beauchamp, M. P. Harrigan, et al., "MDTraj: A Modern Open Library for the Analysis of Molecular Dynamics Trajectories," *Biophysical Journal* 109, no. 8 (2015): 1528–1532. https://doi.org/10.1016/j.bpj.2015.08.015
+
+7. **AmberTools / AMBER** — D. A. Case, K. Belfon, I. Y. Ben-Shalom, et al., "AMBER 2020," University of California, San Francisco (2020). https://ambermd.org/
+
+---
+
 ## License
 
 MIT
